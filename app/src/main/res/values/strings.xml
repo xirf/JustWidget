@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Just Widget</string>
+    <string name="widget_description">A clean weather + clock widget.</string>
+    <string name="settings_title">Just Widget</string>
+    <string name="hide_icon_label">Hide app icon from launcher</string>
+    <string name="hide_icon_hint">The widget stays available in your launcher\'s widget picker. Tap the widget to reopen this screen.</string>
+    <string name="refresh_now">Refresh weather now</string>
+    <string name="grant_location">Grant location permission</string>
+    <string name="location_rationale">Without location, weather defaults to Magetan.</string>
+</resources>

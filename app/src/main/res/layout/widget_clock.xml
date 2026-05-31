@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Top bar of the widget. TextClock is one of the few RemoteViews the widget host
+  keeps updating on its own, so the time/date/weekday stay live without a widget
+  refresh. Embedded into the Glance layout via AndroidRemoteViews.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:baselineAligned="false">
+
+    <TextClock
+        android:id="@+id/widget_time"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:format12Hour="hh:mm"
+        android:format24Hour="HH:mm"
+        android:textColor="@color/widget_text"
+        android:textSize="44sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="end">
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format12Hour="MM/dd/yyyy"
+            android:format24Hour="MM/dd/yyyy"
+            android:textColor="@color/widget_text"
+            android:textSize="13sp" />
+
+        <TextClock
+            android:id="@+id/widget_weekday"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format12Hour="EEEE"
+            android:format24Hour="EEEE"
+            android:textColor="@color/widget_text"
+            android:textSize="13sp" />
+    </LinearLayout>
+</LinearLayout>
