@@ -1,5 +1,6 @@
 package id.andka.justwidget.widget
 
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.widget.RemoteViews
@@ -48,6 +49,7 @@ class WeatherWidget : GlanceAppWidget() {
     }
 }
 
+@SuppressLint("RestrictedApi")
 private val white = ColorProvider(R.color.widget_text)
 
 @Composable
@@ -55,7 +57,7 @@ private fun WidgetUi(context: Context, data: WeatherData?) {
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(ImageProvider(R.drawable.widget_bg))
+//            .background(ImageProvider(R.drawable.widget_bg))
             .padding(16.dp)
             .clickable(
                 actionStartActivity(
@@ -68,7 +70,7 @@ private fun WidgetUi(context: Context, data: WeatherData?) {
         // whole widget and squashes every sibling below it — bound its height.
         AndroidRemoteViews(
             remoteViews = RemoteViews(context.packageName, R.layout.widget_clock),
-            modifier = GlanceModifier.fillMaxWidth().height(56.dp),
+            modifier = GlanceModifier.fillMaxWidth().height(62.dp),
         )
 
         Spacer(GlanceModifier.height(8.dp))
@@ -131,7 +133,7 @@ private fun Forecast(data: WeatherData, modifier: GlanceModifier) {
 /** A past day: short translucent card with just the date label. */
 @Composable
 private fun PastDayCell(day: DayForecast, modifier: GlanceModifier) {
-    Box(modifier = modifier.padding(horizontal = 2.dp)) {
+    Box(modifier = modifier.padding(horizontal = 4.dp)) {
         Column(
             modifier = GlanceModifier
                 .fillMaxWidth()
@@ -148,7 +150,7 @@ private fun PastDayCell(day: DayForecast, modifier: GlanceModifier) {
 @Composable
 private fun ForecastColumn(day: DayForecast, accent: Boolean, modifier: GlanceModifier) {
     val bg = if (accent) R.drawable.tile_bg_accent else R.drawable.tile_bg
-    Box(modifier = modifier.fillMaxHeight().padding(horizontal = 2.dp)) {
+    Box(modifier = modifier.fillMaxHeight().padding(horizontal = 4.dp)) {
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -177,11 +179,12 @@ private fun DayLabel(day: DayForecast) {
         text = "${day.dayOfMonth}",
         style = TextStyle(
             color = white,
-            fontSize = 15.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         ),
     )
+    Spacer(GlanceModifier.height(4.dp))
     Text(
         text = day.weekdayShort,
         style = TextStyle(color = white, fontSize = 9.sp, textAlign = TextAlign.Center),
