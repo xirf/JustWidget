@@ -3,6 +3,12 @@
 Just Widget is a minimal weather + clock widget built with Glance and Compose. It pulls
 forecast data from Open-Meteo and can use device location (optional).
 
+<p align="center">
+  <img src="docs/screenshots/widget_preview.png" width="30%" alt="Widget on Home Screen" />
+  <img src="docs/screenshots/weather_preview.png" width="30%" alt="Weather Page" />
+  <img src="docs/screenshots/settings_preview.png" width="30%" alt="Settings Page" />
+</p>
+
 ## Features
 - Clean weather + clock widget
 - 7-day forecast
