@@ -1,6 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- Day theme. -->
     <style name="Theme.JustWidget" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:statusBarColor" tools:targetApi="l">@color/widget_bg</item>
+        <item name="android:statusBarColor" tools:targetApi="l">#FFF0F4F8</item>
+        <item name="android:navigationBarColor">#FFF0F4F8</item>
+        <item name="android:windowBackground">#FFF0F4F8</item>
     </style>
 </resources>

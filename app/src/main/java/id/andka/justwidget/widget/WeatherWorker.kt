@@ -14,8 +14,11 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import id.andka.justwidget.WeatherDataStore
 import id.andka.justwidget.data.LocationProvider
+import id.andka.justwidget.data.ThemeStore
 import id.andka.justwidget.data.WeatherRepository
+import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 
 /** Fetches location + weather and writes it into every widget instance. */
@@ -31,15 +34,23 @@ class WeatherWorker(
             val data = WeatherRepository.fetch(place.lat, place.lon, place.name)
             val json = WeatherStore.serialize(data)
 
+            val accent = ThemeStore.accentColorFlow(context).first()
+            val textDark = ThemeStore.widgetTextDarkFlow(context).first()
+            val bgStyle = ThemeStore.widgetBgStyleFlow(context).first()
+
             val ids = GlanceAppWidgetManager(context).getGlanceIds(WeatherWidget::class.java)
             ids.forEach { id ->
                 updateAppWidgetState(context, PreferencesGlanceStateDefinition, id) { prefs ->
                     prefs.toMutablePreferences().apply {
                         this[WeatherStore.KEY_JSON] = json
+                        this[WeatherStore.KEY_ACCENT] = accent
+                        this[WeatherStore.KEY_TEXT_DARK] = textDark
+                        this[WeatherStore.KEY_BG_STYLE] = bgStyle
                     }
                 }
             }
             WeatherWidget().updateAll(context)
+            WeatherDataStore.save(context, json)
             Result.success()
         } catch (e: Exception) {
             Result.retry()

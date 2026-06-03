@@ -38,6 +38,9 @@ object LocationProvider {
      */
     @SuppressLint("MissingPermission") // guarded by hasPermission() above
     suspend fun current(context: Context): Place {
+        val custom = ThemeStore.getCustomLocation(context)
+        if (custom != null) return custom
+
         if (!hasPermission(context)) return MAGETAN
         return try {
             val client = LocationServices.getFusedLocationProviderClient(context)
@@ -54,6 +57,19 @@ object LocationProvider {
             MAGETAN
         }
     }
+
+    suspend fun resolveLocationName(context: Context, name: String): Place? =
+        withContext(Dispatchers.IO) {
+            try {
+                @Suppress("DEPRECATION")
+                val results = Geocoder(context, Locale.getDefault()).getFromLocationName(name, 1)
+                val a = results?.firstOrNull() ?: return@withContext null
+                val resolvedName = a.locality ?: a.subAdminArea ?: a.adminArea ?: a.countryName ?: name
+                Place(a.latitude, a.longitude, resolvedName)
+            } catch (e: Exception) {
+                null
+            }
+        }
 
     private suspend fun reverseGeocode(context: Context, lat: Double, lon: Double): String? =
         withContext(Dispatchers.IO) {

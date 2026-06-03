@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.widget.RemoteViews
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
@@ -15,7 +16,11 @@ import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.AndroidRemoteViews
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.appwidget.updateAll
 import androidx.glance.background
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
@@ -28,6 +33,7 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
@@ -44,20 +50,66 @@ class WeatherWidget : GlanceAppWidget() {
         provideContent {
             val prefs = currentState<Preferences>()
             val data = WeatherStore.deserialize(prefs[WeatherStore.KEY_JSON])
-            WidgetUi(context, data)
+            val accentHex = prefs[WeatherStore.KEY_ACCENT] ?: "#C084FC"
+            val textDark = prefs[WeatherStore.KEY_TEXT_DARK] ?: false
+            val bgStyle = prefs[WeatherStore.KEY_BG_STYLE] ?: "dark"
+            WidgetUi(context, data, accentHex, textDark, bgStyle)
+        }
+    }
+
+    companion object {
+        suspend fun updateSettings(
+            context: Context,
+            accent: String,
+            textDark: Boolean,
+            bgStyle: String
+        ) {
+            val manager = GlanceAppWidgetManager(context)
+            val ids = manager.getGlanceIds(WeatherWidget::class.java)
+            ids.forEach { id ->
+                updateAppWidgetState(context, PreferencesGlanceStateDefinition, id) { prefs ->
+                    prefs.toMutablePreferences().apply {
+                        this[WeatherStore.KEY_ACCENT] = accent
+                        this[WeatherStore.KEY_TEXT_DARK] = textDark
+                        this[WeatherStore.KEY_BG_STYLE] = bgStyle
+                    }
+                }
+            }
+            WeatherWidget().updateAll(context)
         }
     }
 }
 
-@SuppressLint("RestrictedApi")
-private val white = ColorProvider(R.color.widget_text)
-
 @Composable
-private fun WidgetUi(context: Context, data: WeatherData?) {
+private fun WidgetUi(
+    context: Context,
+    data: WeatherData?,
+    accentHex: String,
+    textDark: Boolean,
+    bgStyle: String
+) {
+    val textColor = if (textDark) Color(0xFF1A1A2E) else Color.White
+    val textColorProvider = ColorProvider(textColor)
+
+    // RemoteViews for Clock (need to set custom text color)
+    val rv = RemoteViews(context.packageName, R.layout.widget_clock).apply {
+        val clockColor = if (textDark) 0xFF1A1A2E.toInt() else android.graphics.Color.WHITE
+        setTextColor(R.id.widget_time, clockColor)
+        setTextColor(R.id.widget_date, clockColor)
+        setTextColor(R.id.widget_weekday, clockColor)
+    }
+
+    // Determine root widget background style
+    val rootBackgroundMod = when (bgStyle) {
+        "light" -> GlanceModifier.background(Color(0xB3F0F4F8)).cornerRadius(20.dp)
+        "transparent" -> GlanceModifier.background(Color.Transparent)
+        else -> GlanceModifier.background(Color(0xB3101018)).cornerRadius(20.dp) // "dark"
+    }
+
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-//            .background(ImageProvider(R.drawable.widget_bg))
+            .then(rootBackgroundMod)
             .padding(16.dp)
             .clickable(
                 actionStartActivity(
@@ -65,11 +117,8 @@ private fun WidgetUi(context: Context, data: WeatherData?) {
                 )
             ),
     ) {
-        // Live clock + date + weekday (self-updating RemoteViews).
-        // NOTE: AndroidRemoteViews with no height constraint expands to fill the
-        // whole widget and squashes every sibling below it — bound its height.
         AndroidRemoteViews(
-            remoteViews = RemoteViews(context.packageName, R.layout.widget_clock),
+            remoteViews = rv,
             modifier = GlanceModifier.fillMaxWidth().height(62.dp),
         )
 
@@ -78,24 +127,36 @@ private fun WidgetUi(context: Context, data: WeatherData?) {
         if (data == null || data.days.isEmpty()) {
             Text(
                 text = "Tap to load weather…",
-                style = TextStyle(color = white, fontSize = 12.sp),
+                style = TextStyle(color = textColorProvider, fontSize = 12.sp),
             )
         } else {
-            Forecast(data, GlanceModifier.defaultWeight())
+            Forecast(data, accentHex, textDark, textColorProvider, GlanceModifier.defaultWeight())
         }
     }
 }
 
 /**
- * The 7-column forecast. "Today" is centered at position 4: the 3 columns before
- * it are the past 3 days (short cards, label only), and from today onward each
- * column is a full-height band with weather. Wind + place is overlaid at the
- * bottom-left, under the past-day columns.
+ * The 7-column forecast.
  */
 @Composable
-private fun Forecast(data: WeatherData, modifier: GlanceModifier) {
+private fun Forecast(
+    data: WeatherData,
+    accentHex: String,
+    textDark: Boolean,
+    textColorProvider: ColorProvider,
+    modifier: GlanceModifier
+) {
     val days = data.days
     val today = data.todayIndex.coerceIn(0, days.size - 1)
+
+    val accentColor = try {
+        Color(android.graphics.Color.parseColor(accentHex))
+    } catch (e: Exception) {
+        Color(0xFFC084FC)
+    }
+
+    val tileBgColor = if (textDark) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.12f)
+    val accentBgColor = accentColor.copy(alpha = 0.22f)
 
     Box(modifier = modifier.fillMaxWidth()) {
         // Back layer: 7 equal-width columns.
@@ -105,9 +166,11 @@ private fun Forecast(data: WeatherData, modifier: GlanceModifier) {
         ) {
             days.forEachIndexed { i, day ->
                 if (i < today) {
-                    PastDayCell(day, GlanceModifier.defaultWeight())
+                    PastDayCell(day, tileBgColor, textColorProvider, GlanceModifier.defaultWeight())
                 } else {
-                    ForecastColumn(day, accent = i == today, GlanceModifier.defaultWeight())
+                    val isToday = (i == today)
+                    val bg = if (isToday) accentBgColor else tileBgColor
+                    ForecastColumn(day, bg, textColorProvider, GlanceModifier.defaultWeight())
                 }
             }
         }
@@ -120,11 +183,11 @@ private fun Forecast(data: WeatherData, modifier: GlanceModifier) {
         ) {
             Text(
                 text = "${data.windCompass}, ${data.windSpeedKmh} km/h",
-                style = TextStyle(color = white, fontSize = 11.sp),
+                style = TextStyle(color = textColorProvider, fontSize = 11.sp),
             )
             Text(
                 text = data.placeName,
-                style = TextStyle(color = white, fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(color = textColorProvider, fontSize = 13.sp, fontWeight = FontWeight.Medium),
             )
         }
     }
@@ -132,41 +195,52 @@ private fun Forecast(data: WeatherData, modifier: GlanceModifier) {
 
 /** A past day: short translucent card with just the date label. */
 @Composable
-private fun PastDayCell(day: DayForecast, modifier: GlanceModifier) {
+private fun PastDayCell(
+    day: DayForecast,
+    bgColor: Color,
+    textColorProvider: ColorProvider,
+    modifier: GlanceModifier
+) {
     Box(modifier = modifier.padding(horizontal = 4.dp)) {
         Column(
             modifier = GlanceModifier
                 .fillMaxWidth()
-                .background(ImageProvider(R.drawable.tile_bg))
+                .background(bgColor)
+                .cornerRadius(12.dp)
                 .padding(vertical = 4.dp, horizontal = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            DayLabel(day)
+            DayLabel(day, textColorProvider)
         }
     }
 }
 
 /** Today / a future day: full-height band with date label on top, weather below. */
 @Composable
-private fun ForecastColumn(day: DayForecast, accent: Boolean, modifier: GlanceModifier) {
-    val bg = if (accent) R.drawable.tile_bg_accent else R.drawable.tile_bg
+private fun ForecastColumn(
+    day: DayForecast,
+    bgColor: Color,
+    textColorProvider: ColorProvider,
+    modifier: GlanceModifier
+) {
     Box(modifier = modifier.fillMaxHeight().padding(horizontal = 4.dp)) {
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .background(ImageProvider(bg))
+                .background(bgColor)
+                .cornerRadius(12.dp)
                 .padding(vertical = 4.dp, horizontal = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            DayLabel(day)
+            DayLabel(day, textColorProvider)
             Spacer(GlanceModifier.defaultWeight())
             Text(
                 text = day.emoji,
-                style = TextStyle(color = white, fontSize = 16.sp, textAlign = TextAlign.Center),
+                style = TextStyle(color = textColorProvider, fontSize = 16.sp, textAlign = TextAlign.Center),
             )
             Text(
                 text = "${day.maxTemp}°",
-                style = TextStyle(color = white, fontSize = 11.sp, textAlign = TextAlign.Center),
+                style = TextStyle(color = textColorProvider, fontSize = 11.sp, textAlign = TextAlign.Center),
             )
         }
     }
@@ -174,11 +248,11 @@ private fun ForecastColumn(day: DayForecast, accent: Boolean, modifier: GlanceMo
 
 /** Big day-of-month number with the short weekday beneath it. */
 @Composable
-private fun DayLabel(day: DayForecast) {
+private fun DayLabel(day: DayForecast, textColorProvider: ColorProvider) {
     Text(
         text = "${day.dayOfMonth}",
         style = TextStyle(
-            color = white,
+            color = textColorProvider,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -187,6 +261,6 @@ private fun DayLabel(day: DayForecast) {
     Spacer(GlanceModifier.height(4.dp))
     Text(
         text = day.weekdayShort,
-        style = TextStyle(color = white, fontSize = 9.sp, textAlign = TextAlign.Center),
+        style = TextStyle(color = textColorProvider, fontSize = 9.sp, textAlign = TextAlign.Center),
     )
 }

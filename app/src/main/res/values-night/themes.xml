@@ -1,6 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme (night). -->
+    <!-- Night theme: pure black window bg for AMOLED — eliminates white flash before Compose draws. -->
     <style name="Theme.JustWidget" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:statusBarColor" tools:targetApi="l">@color/widget_bg</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:windowBackground">@android:color/black</item>
     </style>
 </resources>

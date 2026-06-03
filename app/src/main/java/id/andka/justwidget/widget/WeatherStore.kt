@@ -1,5 +1,6 @@
 package id.andka.justwidget.widget
 
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import id.andka.justwidget.data.DayForecast
 import id.andka.justwidget.data.WeatherData
@@ -9,7 +10,10 @@ import org.json.JSONObject
 /** Serializes [WeatherData] to/from JSON so it can live in Glance preferences. */
 object WeatherStore {
 
-    val KEY_JSON = stringPreferencesKey("weather_json")
+    val KEY_JSON      = stringPreferencesKey("weather_json")
+    val KEY_ACCENT    = stringPreferencesKey("accent_color")
+    val KEY_TEXT_DARK = booleanPreferencesKey("widget_text_dark")
+    val KEY_BG_STYLE  = stringPreferencesKey("widget_bg_style")
 
     fun serialize(data: WeatherData): String {
         val days = JSONArray()
