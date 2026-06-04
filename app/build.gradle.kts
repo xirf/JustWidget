@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -9,6 +10,38 @@ plugins {
 
 android {
     namespace = "id.andka.justwidget"
+
+    val signingProperties = Properties().apply {
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { load(it) }
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystorePath = signingProperties.getProperty("signing.storeFile") ?: System.getenv("SIGNING_STORE_FILE")
+            val keystoreStorePassword = signingProperties.getProperty("signing.storePassword") ?: System.getenv("SIGNING_STORE_PASSWORD")
+            val keystoreKeyAlias = signingProperties.getProperty("signing.keyAlias") ?: System.getenv("SIGNING_KEY_ALIAS")
+            val keystoreKeyPassword = signingProperties.getProperty("signing.keyPassword") ?: System.getenv("SIGNING_KEY_PASSWORD")
+
+            val storeFilePath = keystorePath?.let { rootProject.file(it) }
+            val isPlaceholder = keystoreStorePassword == "YOUR_KEYSTORE_PASSWORD" || keystoreKeyPassword == "YOUR_KEY_PASSWORD"
+            if (storeFilePath != null && storeFilePath.exists() && !isPlaceholder && keystoreStorePassword != null && keystoreKeyAlias != null && keystoreKeyPassword != null) {
+                storeFile = storeFilePath
+                storePassword = keystoreStorePassword
+                keyAlias = keystoreKeyAlias
+                keyPassword = keystoreKeyPassword
+            } else {
+                val debugConfig = signingConfigs.getByName("debug")
+                storeFile = debugConfig.storeFile
+                storePassword = debugConfig.storePassword
+                keyAlias = debugConfig.keyAlias
+                keyPassword = debugConfig.keyPassword
+            }
+        }
+    }
+
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -37,6 +70,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
